@@ -49,11 +49,49 @@ func handleErr(err error) {
 	}
 }
 
+// ✅ Fixed: method name must match interface (Addr not Address)
+func (s *simpleserver) Addr() string { 
+	return s.addr 
+}
+
+func (s *simpleserver) IsAlive() bool { 
+	return true 
+}
+
+func (s *simpleserver) Serve(rw http.ResponseWriter, req *http.Request) {
+	s.proxy.ServeHTTP(rw, req)
+}
+
 func (lb *LoadBalancer) getNextAvailableServer() Server {
-	// implementation will be added later
-	return nil
+	server := lb.servers[lb.roundRobinCounter%len(lb.servers)]
+	for !server.IsAlive() {
+		lb.roundRobinCounter++
+		server = lb.servers[lb.roundRobinCounter%len(lb.servers)]
+	}
+	lb.roundRobinCounter++
+	return server
 }
 
 func (lb *LoadBalancer) ServeProxy(rw http.ResponseWriter, r *http.Request) {
-	// implementation will be added later
+	targetServer := lb.getNextAvailableServer()
+	fmt.Printf("Forwarding request to address %q\n", targetServer.Addr())
+	targetServer.Serve(rw, r)
+}
+
+func main() {
+	servers := []Server{
+		newSimpleServer("https://www.facebook.com"),
+		newSimpleServer("https://www.bing.com"),
+		newSimpleServer("https://duckduckgo.com"),
+	}
+
+	lb := NewLoadBalancer("8000", servers)
+
+	// ✅ Fixed: Correct handler registration
+	http.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
+		lb.ServeProxy(rw, r)
+	})
+
+	fmt.Printf("Serving requests at 'localhost:%s'\n", lb.port)
+	handleErr(http.ListenAndServe(":"+lb.port, nil))
 }
