@@ -50,12 +50,12 @@ func handleErr(err error) {
 }
 
 // ✅ Fixed: method name must match interface (Addr not Address)
-func (s *simpleserver) Addr() string { 
-	return s.addr 
+func (s *simpleserver) Addr() string {
+	return s.addr
 }
 
-func (s *simpleserver) IsAlive() bool { 
-	return true 
+func (s *simpleserver) IsAlive() bool {
+	return true
 }
 
 func (s *simpleserver) Serve(rw http.ResponseWriter, req *http.Request) {
